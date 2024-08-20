@@ -2,13 +2,26 @@ import InvoiceDB from "../models/Invoice.model.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import csv from "csvtojson"
 import hbs from "handlebars";
-const file1 = "./public/testt.csv";
+const file1 = "./public/amg17CSV.csv";
 import puppeteer from 'puppeteer';
 import fs from "fs-extra"
 import path from "path"
+import { zip } from 'zip-a-folder';
+
+export const generateZIP = asyncHandler(async (req, res) => {
+    try {
+        const filePathDir = path.join("D:/Invoce genetator/AllGeneratedPdf");
+        const filePathEnd = path.join("D:/Invoce genetator/FileShare.zip");
+        let data = await zip(filePathDir, filePathEnd)
+        res.status(200).json({ message: "success", data: data })
+    } catch (error) {
+        res.status(400).json({ message: "Faild", data: error })
+    }
+})
 
 export const storeData = asyncHandler(async (req, res) => {
     try {
+        await InvoiceDB.deleteMany({});
         csv().fromFile(file1).then(async (data) => {
             let mainStore = data;
             let data1 = await InvoiceDB.insertMany(mainStore)
@@ -22,6 +35,12 @@ export const storeData = asyncHandler(async (req, res) => {
 export const generatePdf = asyncHandler(async (req, res) => {
 
     try {
+        // Remove all the file in AllGeneratedPdf folder and regeneration
+        const filePathDir = path.join("D:/Invoce genetator/AllGeneratedPdf");
+        fs.emptyDir(filePathDir)
+            .then(() => console.log('All files deleted Successfully'))
+            .catch(e => console.log(e))
+
         const browser = await puppeteer.launch({ headless: true });
 
         const db = await InvoiceDB.find();
@@ -41,7 +60,7 @@ export const generatePdf = asyncHandler(async (req, res) => {
         await browser.close();
         // process.exit();
 
-        res.status(200).json({ message: "Success", data: "Generated Successfully", db })
+        res.status(200).json({ message: "Success", data: "Generated Successfully" })
     } catch (error) {
         res.status(400).json({ message: "Faild", data: error })
     }
